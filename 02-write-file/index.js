@@ -2,7 +2,9 @@ const path = require('path');
 const fs = require('fs');
 const readline = require('readline');
 
-const writeStream = fs.createWriteStream(path.join(__dirname , 'text.txt'));
+const fileIn = path.join(__dirname , 'text.txt');
+
+const writeStream = fs.createWriteStream(fileIn);
 
 const question = () => { process.stdout.write('A line: '); };
 
