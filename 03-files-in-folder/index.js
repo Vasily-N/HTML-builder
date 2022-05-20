@@ -15,7 +15,7 @@ const getFileInfoFormatAsync = async (dir, fileName) =>
 
 const logDirFilesInfoAsync = (dir, files) =>
   files.forEach(async file =>
-    file.isDirectory() || process.stdout.write(`${await getFileInfoFormatAsync(dir, file.name)}\n`));
+    file.isDirectory() || file.isFile() && process.stdout.write(`${await getFileInfoFormatAsync(dir, file.name)}\n`));
 
 const getDirFilesInfoAsync = async (dir, files) => 
   await files.reduce(async (pAsync, file) =>
