@@ -17,10 +17,12 @@ const logDirFilesInfoAsync = (dir, files) =>
   files.forEach(async file =>
     file.isDirectory() || file.isFile() && process.stdout.write(`${await getFileInfoFormatAsync(dir, file.name)}\n`));
 
+
 const getDirFilesInfoAsync = async (dir, files) => 
-  await files.reduce(async (pAsync, file) =>
-    await (async p => file.isDirectory() ? p
-      : `${p ? `${p}\n` : ''}${await getFileInfoFormatAsync(dir, file.name)}`)(await pAsync)
+  await files.reduce(async (pPromise, file) =>
+    file.isDirectory() ? await pPromise
+      : ((filesInfo, fileInfo) => `${filesInfo ? `${filesInfo}\n` : ''}${fileInfo}`)(
+        await pPromise, await getFileInfoFormatAsync(dir, file.name))
   , Promise.resolve(undefined));
 
 const getDirInfo = async(dir, getFullInfoAtOnce = false) => {

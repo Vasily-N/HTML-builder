@@ -7,24 +7,29 @@ const dirOut = path.join(__dirname, alt ? 'test-files' : 'project-dist');
 const pathOut = path.join(dirOut, 'bundle.css');
 const dirIn = path.join(__dirname, alt ? 'test-files' : '', 'styles');
 
-const copyFileDataToStream = (path, ws) => {
+const copyFileDataToStreamAsync = (path, ws) => {
   const rs = createReadStream(path);
   rs.pipe(ws, { end: false });
   return new Promise(resolve => rs.on('close', resolve));
 };
 
-const mergeStyles = async(src, dest) => {
-  const mergeFile = async(file, ws) => {
+const mergeStylesAsync = async(src, dest) => {
+  const mergeFileAsync = async(file, ws) => {
     if(!file.isFile() || path.extname(file.name) !== '.css') return;
-    await copyFileDataToStream(path.join(src, file.name), ws);
+    await copyFileDataToStreamAsync(path.join(src, file.name), ws);
     ws.write('\n');
   };
 
   const ws = createWriteStream(dest);
   const files = await readdir(src, {withFileTypes: true});
   for(const file of files) {
-    await mergeFile(file, ws);
+    await mergeFileAsync(file, ws);
   }
 };
 
-mergeStyles(dirIn, pathOut);
+
+if(require.main === module)
+  mergeStylesAsync(dirIn, pathOut);
+else {
+  module.exports = mergeStylesAsync;
+}
