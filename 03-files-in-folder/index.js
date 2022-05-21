@@ -5,7 +5,7 @@ const dir = path.join(__dirname , 'secret-folder');
 
 const getFileSizeAsync = async filePath => (await stat(filePath)).size;
 
-const formatFileInfo = (fileParse, fileSize) => `${fileParse.name} - ${fileParse.ext} - ${(fileSize/1024).toFixed(3)}kb`;
+const formatFileInfo = (fileParse, fileSize) => `${fileParse.name} - ${fileParse.ext.slice(1)} - ${(fileSize/1024).toFixed(3)}kb`;
 
 const getFormatFileInfoAsync = async (dir, fileName) =>
   formatFileInfo(path.parse(fileName), await getFileSizeAsync(path.join(dir, fileName)));
