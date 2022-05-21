@@ -11,6 +11,14 @@ const readFileData = path =>
   );
 
 const buildPageAsync = async dest => {
+  const tryMergeComponentToHTML = (html, componentKey, componentValue) => {
+    const toReplace = html.split(new RegExp(`( *?){{${componentKey}}}`, 'g'));
+    if(toReplace.length < 2 ) return html;
+    const componentRows = componentValue.split(/^/mg);
+    return toReplace.map((v, i) => (i % 2) ? `${v}${componentRows.join(v)}` : v).join('');
+  };
+
+  //using await at the same line as func call is much slower
   const createDirPromise = createDirAsync(dest);
 
   const templatePromise = readFileData(path.join(__dirname, 'template.html'));
@@ -27,15 +35,9 @@ const buildPageAsync = async dest => {
   copyDirAsync(path.join(__dirname, 'assets'), path.join(dest, 'assets'));
   mergeStylesAsync(path.join(__dirname, 'styles'), path.join(dest, 'style.css'));
 
-  const result = await Object.keys(componentsPromise).reduce(async(pPromise, c) =>
-    ((html, component) => {
-      const toReplace = html.split(new RegExp(`( *?){{${c}}}`, 'g'));
-      if(toReplace.length < 2 ) return html;
-      const componentRows = component.split(/^/mg);
-      return toReplace.map((v, i) => (i % 2) ? `${v}${componentRows.join(v)}` : v).join('');
-    })(await pPromise, await componentsPromise[c]), await templatePromise);
-
-  await writeFile(path.join(dest, 'index.html'), result);
+  const resultHTML = await Object.keys(componentsPromise).reduce(async(pPromise, c) =>
+    tryMergeComponentToHTML(await pPromise, c, await componentsPromise[c]), templatePromise);
+  await writeFile(path.join(dest, 'index.html'), resultHTML);
 };
 
 buildPageAsync(dest);
