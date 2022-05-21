@@ -24,7 +24,7 @@ const buildPageAsync = async dest => {
   const templatePromise = readFileData(path.join(__dirname, 'template.html'));
 
   const componentsDir = path.join(__dirname, 'components');
-  const filesPromise = readdir(componentsDir, {withFileTypes: true});
+  const filesPromise = readdir(componentsDir, {withFileTypes: true}).catch(() => []);
 
   const componentsPromise = (await filesPromise).reduce((p, file) => 
     file.isFile() ? (fileParse => fileParse.ext === '.html'
