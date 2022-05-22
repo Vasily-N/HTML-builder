@@ -1,32 +1,36 @@
 const path = require('path');
 const { promises: fsp } = require('fs');
 
-const createDirAsync = async(dest) => {
-  const destNotExist = (await fsp.access(dest).catch(e => e.code));
+const checkAccessToDir = async dir => 
+  (await fsp.access(dir).catch(() => true)) ? `No access to ${dir}` : false;
+
+const createDirAsync = async dir => {
+  const destNotExist = (await fsp.access(dir).catch(e => e.code));
+  let err = false;
   if(!destNotExist) {
-    await fsp.rm(dest, { recursive: true });
+    await fsp.rm(dir, { recursive: true });
   } else if(destNotExist !== 'ENOENT') {
-    return false;
+    err = true;
   }
 
   try {
-    await fsp.mkdir(dest, { recursive: true, maxRetries: 10, retryDelay: 100 });
+    await fsp.mkdir(dir, { recursive: true, maxRetries: 10, retryDelay: 100 });
   } catch {
-    return false;
+    err = true;
   }
-
-  return true;
+  return err ? `Something (it can be VSCode, please close to be sure!) is blocking access to ${dir}` : false;
 };
 
 const copyDirAsync = async(dirSrc, dirDest) => {
-  const srcNotExist = await fsp.access(dirSrc).catch(() => true);
-  if(srcNotExist) {
-    process.stdout.write(`No access to ${dirSrc}, abort copyDir`);
+  const errSrc = await checkAccessToDir(dirSrc);
+  if(errSrc) {
+    process.stdout.write(`${errSrc}, abort copyDir`);
     return;
   }
 
-  if(!(await createDirAsync(dirDest))) {
-    process.stdout.write(`Something (it can be VSCode!) is blocking access to ${dirDest}, abort copyDir`);
+  const errDest = await createDirAsync(dirDest);
+  if(errDest) {
+    process.stdout.write(`${errDest}, abort copyDir`);
     return;
   }
 
@@ -46,5 +50,5 @@ if(require.main === module) {
   const dest = path.join(__dirname, 'files-copy');
   copyDirAsync(src, dest);
 } else {
-  module.exports = { copyDirAsync, createDirAsync };
+  module.exports = { copyDirAsync, createDirAsync, checkAccessToDir };
 }

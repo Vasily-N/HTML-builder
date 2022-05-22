@@ -33,7 +33,7 @@ const buildPageAsync = async dest => {
 
   await createDirPromise;
   copyDirAsync(path.join(__dirname, 'assets'), path.join(dest, 'assets'));
-  mergeStylesAsync(path.join(__dirname, 'styles'), path.join(dest, 'style.css'));
+  mergeStylesAsync(path.join(__dirname, 'styles'), dest, 'style.css');
 
   const resultHTML = await Object.keys(componentsPromise).reduce(async(pPromise, c) =>
     tryMergeComponentToHTML(await pPromise, c, await componentsPromise[c]), templatePromise);
