@@ -29,8 +29,10 @@ const buildHtmlAsync = async(templateSrc, componentsSrc, dest, htmlDestFile) => 
   try {
     await writeFile(htmlDest, resultHTML);
   } catch {
-    errMessage(htmlDestFile);
+    return false;
   }
+
+  return true;
 };
 
 const buildPageAsync = async (src, dest) => {
@@ -44,23 +46,18 @@ const buildPageAsync = async (src, dest) => {
   const stylesSrc = path.join(src, 'styles');
   const stylesDestFile = 'style.css';
 
-  const createDirErr = await createDirAsync(dest);
-  if(createDirErr) {
+  if(await createDirAsync(dest)) {
     errMessage(dest);
     return;
   }
 
   const copyDirSuccessPromise = copyDirAsync(assetsSrc, assetsDestPath);
   const mergeSuccessPromise = mergeStylesAsync(stylesSrc, dest, stylesDestFile);
-  buildHtmlAsync(templateSrc, componentsSrc, dest, htmlDestFile);
+  const buildHtmlSuccessPromies = buildHtmlAsync(templateSrc, componentsSrc, dest, htmlDestFile);
 
-  if(!(await copyDirSuccessPromise)) {
-    errMessage(assetsDestPath);
-  }
-
-  if(!(await mergeSuccessPromise)) {
-    errMessage(stylesDestFile);
-  }
+  if(!(await copyDirSuccessPromise)) errMessage(assetsDestPath);
+  if(!(await mergeSuccessPromise)) errMessage(stylesDestFile);
+  if(!(await buildHtmlSuccessPromies)) errMessage(htmlDestFile);
 };
 
 const src = __dirname;
