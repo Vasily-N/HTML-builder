@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const readline = require('readline');
 
-process.stdout.write('Git Bash for Windows 2.35.1-2.35.4 has a bug: Ctrl+C doesn\'t work. Either update or use another terminal');
+process.stdout.write('Git Bash for Windows 2.35.1-2.35.4 has a bug: Ctrl+C doesn\'t work. Either update or use another terminal\n');
 
 const fileIn = path.join(__dirname , 'text.txt');
 
@@ -10,7 +10,7 @@ const writeStream = fs.createWriteStream(fileIn);
 
 const question = () => { process.stdout.write('A line: '); };
 
-const onLine = (line) => {
+const onLine = line => {
   if(line === 'exit') process.exit();
   writeStream.write(`${line}\n`);
   question();
