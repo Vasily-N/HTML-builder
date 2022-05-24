@@ -3,8 +3,6 @@ const { readFile, promises:  {readdir, writeFile } } = require('fs');
 const { copyDirAsync, createDirAsync } = require(path.resolve(__dirname, '..', '04-copy-directory'));
 const mergeStylesAsync = require(path.resolve(__dirname, '..', '05-merge-styles'));
 
-process.stdout.write('VSCode\'s "live server" often blocks file-updates from Node, please turn it off while checking.\n');
-
 const dest = path.join(__dirname, 'project-dist');
 
 const readFileData = path => 
