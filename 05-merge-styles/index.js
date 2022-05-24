@@ -18,13 +18,13 @@ const mergeStylesAsync = async(src, dest, fileOut) => {
   const errSrc = await checkAccessToDir(src);
   if(errSrc) {
     process.stdout.write(`${errSrc}, abort mergeStyles`);
-    return;
+    return false;
   }
 
   const errDest = await checkAccessToDir(dest);
   if(errDest) {
     process.stdout.write(`${errDest}, abort mergeStyles`);
-    return;
+    return false;
   }
 
   const pathOut = path.join(dest, fileOut);
@@ -38,6 +38,7 @@ const mergeStylesAsync = async(src, dest, fileOut) => {
   } catch (e) {
     process.stdout.write(`${e}`);
   }
+  return true;
 };
 
 

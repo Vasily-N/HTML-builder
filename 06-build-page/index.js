@@ -3,7 +3,7 @@ const { readFile, promises:  {readdir, writeFile } } = require('fs');
 const { copyDirAsync, createDirAsync } = require(path.resolve(__dirname, '..', '04-copy-directory'));
 const mergeStylesAsync = require(path.resolve(__dirname, '..', '05-merge-styles'));
 
-process.stdout.write('VSCode\'s "live server" often blocks updating files from Node, please turn it off when check updating.');
+process.stdout.write('VSCode\'s "live server" often blocks file-updates from Node, please turn it off while checking.\n');
 
 const dest = path.join(__dirname, 'project-dist');
 
@@ -11,6 +11,8 @@ const readFileData = path =>
   new Promise(resolve => 
     readFile(path, (_, data) => resolve(data.toString()))
   );
+
+const errMessage = msg => process.stdout.write(`Please close a program (can be VSCode's "live server") that blocks ${msg} from updating\n`);
 
 const buildPageAsync = async dest => {
   const tryMergeComponentToHTML = (html, componentKey, componentValue) => {
@@ -20,6 +22,8 @@ const buildPageAsync = async dest => {
     return toReplace.map((v, i) => (i % 2) ? `${v}${componentRows.join(v)}` : v).join('');
   };
 
+  const htmlFileName = 'index.html';
+  const stylesFileName = 'style.css';
   //using await at the same line as func call is much slower
   const createDirPromise = createDirAsync(dest);
 
@@ -33,13 +37,31 @@ const buildPageAsync = async dest => {
       ? {...p, [fileParse.name]: readFileData(path.join(componentsDir, file.name))}
       : p)(path.parse(file.name)) : p, {});
 
-  await createDirPromise;
-  copyDirAsync(path.join(__dirname, 'assets'), path.join(dest, 'assets'));
-  mergeStylesAsync(path.join(__dirname, 'styles'), dest, 'style.css');
+  const createDirErr = await createDirPromise;
+  if(createDirErr) {
+    errMessage(dest);
+    return;
+  }
+
+  const assetsDestPath = path.join(dest, 'assets');
+  const copyDirSuccessPromise = copyDirAsync(path.join(__dirname, 'assets'), assetsDestPath);
+  const mergeSuccessPromise = mergeStylesAsync(path.join(__dirname, 'styles'), dest, stylesFileName);
 
   const resultHTML = await Object.keys(componentsPromise).reduce(async(pPromise, c) =>
     tryMergeComponentToHTML(await pPromise, c, await componentsPromise[c]), templatePromise);
-  await writeFile(path.join(dest, 'index.html'), resultHTML);
+  try {
+    await writeFile(path.join(dest, htmlFileName), resultHTML);
+  } catch {
+    errMessage(htmlFileName);
+  }
+
+  if(!(await copyDirSuccessPromise)) {
+    errMessage(assetsDestPath);
+  }
+
+  if(!(await mergeSuccessPromise)) {
+    errMessage(stylesFileName);
+  }
 };
 
 buildPageAsync(dest);
