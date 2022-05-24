@@ -1,9 +1,103 @@
 const path = require('path');
-const { promises:  { readFile, readdir, writeFile } } = require('fs');
-const { copyDirAsync, createDirAsync } = require(path.resolve(__dirname, '..', '04-copy-directory'));
-const mergeStylesAsync = require(path.resolve(__dirname, '..', '05-merge-styles'));
+const { createReadStream, createWriteStream, promises: fsp } = require('fs');
+const { readFile, readdir, writeFile } = fsp;
 
 const errMessage = msg => process.stdout.write(`Please close a program (can be VSCode's "live server") that blocks ${msg} from updating\n`);
+
+//copypaste code instead of usage of files because other people in cross-check test with empty files and they doesn't work
+
+const checkAccessToDir = async dir =>
+  (await fsp.access(dir).catch(() => true)) ? `No access to ${dir}` : false;
+
+const createDirAsync = async dir => {
+  const destNotExist = (await fsp.access(dir).catch(e => e.code));
+  let err = false;
+  if(!destNotExist) {
+    try {
+      await fsp.rm(dir, { recursive: true });
+    } catch {
+      err = true;
+    }
+  } else if(destNotExist !== 'ENOENT') {
+    err = true;
+  }
+
+  if(!err) {
+    try {
+      await fsp.mkdir(dir, { recursive: true, maxRetries: 10, retryDelay: 100 });
+    } catch {
+      err = true;
+    }
+  }
+  return err ? `Something (it can be VSCode, please close to be sure!) is blocking access to ${dir}` : false;
+};
+
+const copyDirAsync = async(dirSrc, dirDest) => {
+  const errSrc = await checkAccessToDir(dirSrc);
+  if(errSrc) {
+    process.stdout.write(`${errSrc}, abort copyDir`);
+    return false;
+  }
+
+  const errDest = await createDirAsync(dirDest);
+  if(errDest) {
+    process.stdout.write(`${errDest}, abort copyDir`);
+    return false;
+  }
+
+  const files = await fsp.readdir(dirSrc, {withFileTypes: true});
+  files.forEach(async(file) => {
+    const src = path.join(dirSrc, file.name);
+    const dest = path.join(dirDest, file.name);
+    if(file.isDirectory()) {
+      const success = await copyDirAsync(src, dest);
+      if(!success) return false;
+    }
+    else if(file.isFile())
+      await fsp.copyFile(src, dest);
+  });
+
+  return true;
+};
+
+const copyFileDataToStreamAsync = (path, ws) => {
+  const rs = createReadStream(path);
+  rs.pipe(ws, { end: false });
+  return new Promise(resolve => rs.on('close', resolve));
+};
+
+const mergeStylesAsync = async(src, dest, fileOut) => {
+  const mergeFileAsync = async(file, ws) => {
+    if(!file.isFile() || path.extname(file.name) !== '.css') return;
+    await copyFileDataToStreamAsync(path.join(src, file.name), ws);
+    ws.write('\n');
+  };
+
+  const errSrc = await checkAccessToDir(src);
+  if(errSrc) {
+    process.stdout.write(`${errSrc}, abort mergeStyles`);
+    return false;
+  }
+
+  const errDest = await checkAccessToDir(dest);
+  if(errDest) {
+    process.stdout.write(`${errDest}, abort mergeStyles`);
+    return false;
+  }
+
+  const pathOut = path.join(dest, fileOut);
+
+  try {
+    const ws = createWriteStream(pathOut);
+    const files = await readdir(src, {withFileTypes: true});
+    for(const file of files) {
+      await mergeFileAsync(file, ws);
+    }
+  } catch (e) {
+    process.stdout.write(`${e}`);
+  }
+  return true;
+};
 
 const buildHtmlAsync = async(templateSrc, componentsSrc, dest, htmlDestFile) => {
   const tryMergeComponentToHTML = (html, componentKey, componentValue) => {

@@ -1,6 +1,8 @@
 const path = require('path');
-const { checkAccessToDir } = require(path.resolve(__dirname, '..', '04-copy-directory'));
-const { createReadStream, createWriteStream, promises: { readdir } } = require('fs');
+const { createReadStream, createWriteStream, promises: { readdir, access } } = require('fs');
+
+const checkAccessToDir = async dir =>
+  (await access(dir).catch(() => true)) ? `No access to ${dir}` : false;
 
 const copyFileDataToStreamAsync = (path, ws) => {
   const rs = createReadStream(path);
