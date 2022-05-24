@@ -1,14 +1,9 @@
 const path = require('path');
-const { readFile, promises:  {readdir, writeFile } } = require('fs');
+const { promises:  { readFile, readdir, writeFile } } = require('fs');
 const { copyDirAsync, createDirAsync } = require(path.resolve(__dirname, '..', '04-copy-directory'));
 const mergeStylesAsync = require(path.resolve(__dirname, '..', '05-merge-styles'));
 
 const dest = path.join(__dirname, 'project-dist');
-
-const readFileData = path => 
-  new Promise(resolve => 
-    readFile(path, (_, data) => resolve(data.toString()))
-  );
 
 const errMessage = msg => process.stdout.write(`Please close a program (can be VSCode's "live server") that blocks ${msg} from updating\n`);
 
@@ -25,14 +20,14 @@ const buildPageAsync = async dest => {
   //using await at the same line as func call is much slower
   const createDirPromise = createDirAsync(dest);
 
-  const templatePromise = readFileData(path.join(__dirname, 'template.html'));
+  const templatePromise = readFile(path.join(__dirname, 'template.html'));
 
   const componentsDir = path.join(__dirname, 'components');
   const filesPromise = readdir(componentsDir, {withFileTypes: true}).catch(() => []);
 
   const componentsPromise = (await filesPromise).reduce((p, file) => 
     file.isFile() ? (fileParse => fileParse.ext === '.html'
-      ? {...p, [fileParse.name]: readFileData(path.join(componentsDir, file.name))}
+      ? {...p, [fileParse.name]: readFile(path.join(componentsDir, file.name))}
       : p)(path.parse(file.name)) : p, {});
 
   const createDirErr = await createDirPromise;
@@ -46,7 +41,8 @@ const buildPageAsync = async dest => {
   const mergeSuccessPromise = mergeStylesAsync(path.join(__dirname, 'styles'), dest, stylesFileName);
 
   const resultHTML = await Object.keys(componentsPromise).reduce(async(pPromise, c) =>
-    tryMergeComponentToHTML(await pPromise, c, await componentsPromise[c]), templatePromise);
+    tryMergeComponentToHTML(await pPromise, c, (await componentsPromise[c]).toString()), (await templatePromise).toString());
+
   try {
     await writeFile(path.join(dest, htmlFileName), resultHTML);
   } catch {
